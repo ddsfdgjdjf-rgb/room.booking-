@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>حجز غرف الاجتماعات</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #15130F;
+    color: #F4EFE4;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    direction: rtl;
+  }
+  .header {
+    border-bottom: 1px solid #ffffff14;
+    padding: 28px 20px;
+    background: linear-gradient(180deg, #1C1911 0%, #15130F 100%);
+  }
+  .header-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .eyebrow { font-size: 12px; letter-spacing: 2px; color: #F2B84B; margin-bottom: 6px; font-weight: 700; }
+  h1 { font-size: 30px; font-weight: 800; margin: 0; }
+  .date-box { display: flex; flex-direction: column; gap: 4px; }
+  .date-label { font-size: 12px; color: #B9B2A2; }
+  input, select, button { font-family: inherit; }
+  .date-input {
+    background: #211D14; border: 1px solid #ffffff20; color: #F4EFE4;
+    border-radius: 8px; padding: 8px 10px; font-size: 14px;
+  }
+  .sync-note { display:flex; align-items:center; gap:5px; font-size:10px; color:#8A8373; margin-top:4px; }
+  .sync-dot { width:6px; height:6px; border-radius:50%; background:#4BF288; display:inline-block; }
+  .body {
+    max-width: 1000px; margin: 28px auto 0; padding: 0 20px;
+    display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; align-items: start;
+  }
+  @media (max-width: 800px) { .body { grid-template-columns: 1fr; } }
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; position: relative; }
+  @media (max-width: 800px) { .board { grid-template-columns: 1fr; } }
+  .room-col { background: #1B1810; border: 1px solid #ffffff14; border-radius: 12px; overflow: hidden; }
+  .room-head { padding: 12px 14px; border-bottom: 1px solid #ffffff14; background: #211D14; }
+  .room-name { font-weight: 700; font-size: 14px; }
+  .room-cap { font-size: 11px; color: #B9B2A2; margin-top: 2px; }
+  .timeline { max-height: 480px; overflow-y: auto; }
+  .slot-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-bottom: 1px solid #ffffff10; min-height: 34px; font-size: 12px;
+  }
+  .slot-time { font-family: monospace; color: #8A8373; width: 40px; flex-shrink: 0; }
+  .free-label { color: #5A5648; font-size: 11px; }
+  .booked-chip { display: flex; flex-direction: column; flex: 1; gap: 2px; }
+  .booked-name { font-weight: 700; color: #F2B84B; font-size: 12px; }
+  .booked-range { font-size: 10px; color: #C9C2B2; }
+  .cancel-btn {
+    margin-top: 2px; align-self: flex-start; background: transparent;
+    border: 1px solid #F2666633; color: #F28C8C; border-radius: 6px;
+    font-size: 10px; padding: 2px 8px; cursor: pointer;
+  }
+  .form {
+    background: #1B1810; border: 1px solid #ffffff14; border-radius: 12px;
+    padding: 20px; display: flex; flex-direction: column; gap: 10px;
+    position: sticky; top: 20px;
+  }
+  .form-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; color: #F2B84B; }
+  label { font-size: 12px; color: #B9B2A2; margin-top: 4px; }
+  .input {
+    background: #211D14; border: 1px solid #ffffff20; color: #F4EFE4;
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; width: 100%;
+  }
+  .row2 { display: flex; gap: 10px; }
+  .box { border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.6; }
+  .error-box { background: #3A1616; border: 1px solid #F2666644; color: #F2A2A2; }
+  .warn-box { background: #3A2E16; border: 1px solid #F2B84B44; color: #F2CE8C; }
+  .hint-box { background: #16302A; border: 1px solid #4BF2C544; color: #8CF2D6; }
+  .toast-box { background: #16302A; border: 1px solid #4BF28844; color: #8CF2A6; font-weight: 700; text-align: center; }
+  .submit-btn {
+    margin-top: 8px; background: #F2B84B; color: #1B1810; font-weight: 800;
+    border: none; border-radius: 10px; padding: 12px 16px; font-size: 15px; cursor: pointer;
+  }
+  .footer-note {
+    max-width: 1000px; margin: 24px auto 0; padding: 0 20px;
+    font-size: 12px; color: #8A8373; text-align: center;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="eyebrow">لوحة الحجوزات</div>
+      <h1>غرف الاجتماعات</h1>
+    </div>
+    <div class="date-box">
+      <label class="date-label">اليوم</label>
+      <input type="date" id="dateInput" class="date-input" />
+      <div class="sync-note" id="syncNote">
+        <span class="sync-dot"></span> يتحدث تلقائياً
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="board" id="board"></div>
+
+  <form class="form" id="bookingForm">
+    <div class="form-title">احجز موعدك</div>
+
+    <label>الاسم</label>
+    <input class="input" id="nameInput" placeholder="اكتب اسمك" />
+
+    <label>الغرفة</label>
+    <select class="input" id="roomSelect"></select>
+
+    <div class="row2">
+      <div style="flex:1">
+        <label>وقت البداية</label>
+        <input type="time" class="input" id="startInput" step="1800" value="09:00" />
+      </div>
+      <div style="flex:1">
+        <label>المدة</label>
+        <select class="input" id="durationSelect">
+          <option value="30">30 دقيقة</option>
+          <option value="60" selected>ساعة</option>
+          <option value="90">ساعة ونصف</option>
+          <option value="120">ساعتين</option>
+        </select>
+      </div>
+    </div>
+
+    <label>عدد الحضور</label>
+    <input type="number" class="input" id="attendeesInput" min="1" max="200" value="4" />
+
+    <div id="warnBox" class="box warn-box hidden"></div>
+    <div id="hintBox" class="box hint-box hidden"></div>
+    <div id="errorBox" class="box error-box hidden"></div>
+    <div id="toastBox" class="box toast-box hidden"></div>
+
+    <button type="submit" class="submit-btn">تأكيد الحجز</button>
+  </form>
+</div>
+
+<div class="footer-note">
+  هذه البيانات مشتركة — أي شخص يفتح هذا الرابط يشوف نفس جدول الحجوزات ويقدر يضيف أو يلغي حجزه.
+</div>
+
+<!-- Firebase (compat SDK, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =========================================================
+   1) ضع بيانات مشروع Firebase الخاص فيك هنا
+   (خطوات الحصول عليها موجودة في الشرح المرفق مع الملف)
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "ضع_مفتاحك_هنا",
+  authDomain: "ضع_مشروعك.firebaseapp.com",
+  databaseURL: "https://ضع_مشروعك-default-rtdb.firebaseio.com",
+  projectId: "ضع_مشروعك",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const bookingsRef = db.ref("bookings");
+
+/* ===================== الإعدادات ===================== */
+const ROOMS = [
+  { id: "r1", name: "غرفة النخيل", capacity: 8 },
+  { id: "r2", name: "غرفة الصقر", capacity: 12 },
+  { id: "r3", name: "غرفة اللؤلؤة", capacity: 20 },
+];
+const DAY_START = 8, DAY_END = 18, SLOT_MIN = 30;
+const toMinutes = (hhmm) => { const [h,m] = hhmm.split(":").map(Number); return h*60+m; };
+const fromMinutes = (mins) => {
+  const h = Math.floor(mins/60).toString().padStart(2,"0");
+  const m = (mins%60).toString().padStart(2,"0");
+  return `${h}:${m}`;
+};
+const todayStr = () => new Date().toISOString().slice(0,10);
+const SLOTS = [];
+for (let t = DAY_START*60; t < DAY_END*60; t += SLOT_MIN) SLOTS.push(t);
+const overlaps = (aS,aE,bS,bE) => aS < bE && bS < aE;
+
+let bookings = {};
+let currentDate = todayStr();
+
+document.getElementById("dateInput").value = currentDate;
+document.getElementById("dateInput").addEventListener("change", (e) => {
+  currentDate = e.target.value;
+  renderBoard();
+});
+
+const roomSelect = document.getElementById("roomSelect");
+ROOMS.forEach(r => {
+  const opt = document.createElement("option");
+  opt.value = r.id;
+  opt.textContent = `${r.name} (يتسع لـ ${r.capacity})`;
+  roomSelect.appendChild(opt);
+});
+
+function showBox(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+function hideBox(id) {
+  document.getElementById(id).classList.add("hidden");
+}
+function hideAllBoxes() {
+  ["warnBox","hintBox","errorBox","toastBox"].forEach(hideBox);
+}
+
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  ROOMS.forEach(r => {
+    const col = document.createElement("div");
+    col.className = "room-col";
+
+    const head = document.createElement("div");
+    head.className = "room-head";
+    head.innerHTML = `<div class="room-name">${r.name}</div><div class="room-cap">يتسع لـ ${r.capacity}</div>`;
+    col.appendChild(head);
+
+    const timeline = document.createElement("div");
+    timeline.className = "timeline";
+
+    const dayBookings = Object.entries(bookings)
+      .map(([id, b]) => ({ id, ...b }))
+      .filter(b => b.room === r.id && b.date === currentDate)
+      .sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+
+    SLOTS.forEach(t => {
+      const b = dayBookings.find(bk => toMinutes(bk.start) <= t && t < toMinutes(bk.end));
+      const isStart = b && toMinutes(b.start) === t;
+      const row = document.createElement("div");
+      row.className = "slot-row";
+      row.style.background = b ? "#2A2118" : "transparent";
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "slot-time";
+      timeSpan.textContent = fromMinutes(t);
+      row.appendChild(timeSpan);
+
+      if (isStart) {
+        const chip = document.createElement("div");
+        chip.className = "booked-chip";
+        chip.innerHTML = `
+          <span class="booked-name">${b.name}</span>
+          <span class="booked-range">${b.start}–${b.end} · ${b.attendees} أشخاص</span>
+        `;
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "cancel-btn";
+        cancelBtn.textContent = "إلغاء";
+        cancelBtn.onclick = () => bookingsRef.child(b.id).remove();
+        chip.appendChild(cancelBtn);
+        row.appendChild(chip);
+      } else if (!b) {
+        const free = document.createElement("span");
+        free.className = "free-label";
+        free.textContent = "متاح";
+        row.appendChild(free);
+      }
+      timeline.appendChild(row);
+    });
+    col.appendChild(timeline);
+    board.appendChild(col);
+  });
+}
+
+function suggestFreeRoom(startMin, endMin, attendees) {
+  return ROOMS.find(r => {
+    if (r.capacity < attendees) return false;
+    const clash = Object.values(bookings).some(b =>
+      b.room === r.id && b.date === currentDate &&
+      overlaps(startMin, endMin, toMinutes(b.start), toMinutes(b.end))
+    );
+    return !clash;
+  });
+}
+
+document.getElementById("bookingForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  hideAllBoxes();
+
+  const name = document.getElementById("nameInput").value.trim();
+  const room = roomSelect.value;
+  const start = document.getElementById("startInput").value;
+  const duration = Number(document.getElementById("durationSelect").value);
+  const attendees = Number(document.getElementById("attendeesInput").value);
+
+  if (!name) return showBox("errorBox", "يرجى كتابة الاسم");
+
+  const startMin = toMinutes(start);
+  const endMin = startMin + duration;
+  if (startMin < DAY_START*60 || endMin > DAY_END*60) {
+    return showBox("errorBox", `مواعيد الاجتماعات من ${DAY_START}:00 إلى ${DAY_END}:00 فقط`);
+  }
+
+  const roomInfo = ROOMS.find(r => r.id === room);
+  if (attendees > roomInfo.capacity) {
+    showBox("warnBox", `${roomInfo.name} تتسع لـ ${roomInfo.capacity} أشخاص كحد أقصى. قسّم الاجتماع أو استخدم قاعة أكبر.`);
+    const suggestion = suggestFreeRoom(startMin, endMin, attendees);
+    if (!suggestion) return;
+  }
+
+  const clash = Object.values(bookings).find(b =>
+    b.room === room && b.date === currentDate &&
+    overlaps(startMin, endMin, toMinutes(b.start), toMinutes(b.end))
+  );
+  if (clash) {
+    return showBox("errorBox", `الغرفة محجوزة من ${clash.start} إلى ${clash.end} باسم ${clash.name}. جرّب وقت آخر أو غرفة أخرى`);
+  }
+
+  const suggestion = suggestFreeRoom(startMin, endMin, attendees);
+  if (suggestion && suggestion.id !== room) {
+    showBox("hintBox", `${suggestion.name} متاحة بهذا التوقيت — جرّبها إن كانت الغرفة الحالية مزدحمة.`);
+  }
+
+  bookingsRef.push({
+    name, room, date: currentDate, start, end: fromMinutes(endMin), attendees
+  });
+
+  showBox("toastBox", "تم تأكيد الحجز ✓");
+  document.getElementById("nameInput").value = "";
+  setTimeout(() => hideBox("toastBox"), 2500);
+});
+
+// استماع مباشر لأي تغييرات (يحدّث فوراً بدون Refresh)
+bookingsRef.on("value", (snapshot) => {
+  bookings = snapshot.val() || {};
+  renderBoard();
+});
+</script>
+</body>
+</html>
