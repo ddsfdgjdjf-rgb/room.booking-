@@ -1,4 +1,4 @@
-<!DOCTYPE htmli> 
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
@@ -9,7 +9,6 @@
   body { margin: 0; background: #15130F; color: #F4EFE4; font-family: 'Segoe UI', Tahoma, sans-serif; direction: rtl; }
   input, select, button { font-family: inherit; }
   .hidden { display: none; }
-
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .login-card { background: #1B1810; border: 1px solid #ffffff14; border-radius: 16px; padding: 32px 24px; max-width: 360px; width: 100%; text-align: center; }
   .login-eyebrow { font-size: 12px; letter-spacing: 2px; color: #F2B84B; margin-bottom: 6px; font-weight: 700; }
@@ -18,7 +17,6 @@
   .login-btn { background: #F2B84B; color: #1B1810; font-weight: 800; border: none; border-radius: 10px; padding: 13px 16px; font-size: 15px; cursor: pointer; width: 100%; }
   .admin-link { margin-top: 16px; font-size: 12px; color: #8A8373; text-decoration: underline; cursor: pointer; background: none; border: none; }
   .login-error { color: #F2A2A2; font-size: 12px; margin-top: 8px; }
-
   .header { border-bottom: 1px solid #ffffff14; padding: 28px 20px; background: linear-gradient(180deg, #1C1911 0%, #15130F 100%); }
   .header-inner { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
   .eyebrow { font-size: 12px; letter-spacing: 2px; color: #F2B84B; margin-bottom: 6px; font-weight: 700; }
@@ -32,7 +30,6 @@
   .date-input { background: #211D14; border: 1px solid #ffffff20; color: #F4EFE4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
   .sync-note { display:flex; align-items:center; gap:5px; font-size:10px; color:#8A8373; margin-top:4px; }
   .sync-dot { width:6px; height:6px; border-radius:50%; background:#4BF288; display:inline-block; }
-
   .body { max-width: 1000px; margin: 28px auto 0; padding: 0 20px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; align-items: start; }
   @media (max-width: 800px) { .body { grid-template-columns: 1fr; } }
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; position: relative; }
@@ -49,7 +46,6 @@
   .booked-name { font-weight: 700; color: #F2B84B; font-size: 12px; }
   .booked-range { font-size: 10px; color: #C9C2B2; }
   .cancel-btn { margin-top: 2px; align-self: flex-start; background: transparent; border: 1px solid #F2666633; color: #F28C8C; border-radius: 6px; font-size: 10px; padding: 2px 8px; cursor: pointer; }
-
   .form { background: #1B1810; border: 1px solid #ffffff14; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 20px; }
   .form-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; color: #F2B84B; }
   label { font-size: 12px; color: #B9B2A2; margin-top: 4px; }
@@ -62,7 +58,6 @@
   .toast-box { background: #16302A; border: 1px solid #4BF28844; color: #8CF2A6; font-weight: 700; text-align: center; }
   .submit-btn { margin-top: 8px; background: #F2B84B; color: #1B1810; font-weight: 800; border: none; border-radius: 10px; padding: 12px 16px; font-size: 15px; cursor: pointer; }
   .footer-note { max-width: 1000px; margin: 24px auto 0; padding: 0 20px; font-size: 12px; color: #8A8373; text-align: center; }
-
   .modal-backdrop { position: fixed; inset: 0; background: #000000cc; display: flex; align-items: flex-start; justify-content: center; padding: 20px; z-index: 50; overflow-y: auto; }
   .modal-card { background: #1B1810; border: 1px solid #ffffff20; border-radius: 14px; padding: 20px; max-width: 700px; width: 100%; margin-top: 20px; }
   .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -189,7 +184,200 @@ let currentUser = null;
 const STORAGE_KEY = "roomBookingUser";
 
 function loadStoredUser() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+function saveStoredUser(user) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(user)); } catch (e) {} }
+function clearStoredUser() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+
+function showLogin() {
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("appScreen").classList.add("hidden");
+}
+function showApp() {
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("appScreen").classList.remove("hidden");
+  document.getElementById("currentUserLabel").textContent = currentUser.name + (currentUser.isAdmin ? " (صاحب المشروع)" : "");
+  document.getElementById("adminPanelBtn").classList.toggle("hidden", !currentUser.isAdmin);
+}
+
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const name = document.getElementById("loginNameInput").value.trim();
+  if (!name) { document.getElementById("loginError").classList.remove("hidden"); return; }
+  currentUser = { name, isAdmin: false };
+  saveStoredUser(currentUser);
+  showApp();
+});
+
+document.getElementById("ownerLinkBtn").addEventListener("click", () => {
+  const name = document.getElementById("loginNameInput").value.trim();
+  if (!name) {
+    document.getElementById("loginError").textContent = "اكتب اسمك أولاً ثم اضغط دخول كصاحب المشروع";
+    document.getElementById("loginError").classList.remove("hidden");
+    return;
+  }
+  const pin = prompt("أدخل الرمز السري الخاص بصاحب المشروع:");
+  if (pin === ADMIN_PIN) {
+    currentUser = { name, isAdmin: true };
+    saveStoredUser(currentUser);
+    showApp();
+  } else if (pin !== null) {
+    alert("الرمز غير صحيح");
+  }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  clearStoredUser();
+  currentUser = null;
+  document.getElementById("loginNameInput").value = "";
+  showLogin();
+});
+
+const stored = loadStoredUser();
+if (stored && stored.name) { currentUser = stored; showApp(); } else { showLogin(); }
+
+document.getElementById("dateInput").value = currentDate;
+document.getElementById("dateInput").addEventListener("change", (e) => { currentDate = e.target.value; renderBoard(); });
+
+const roomSelect = document.getElementById("roomSelect");
+ROOMS.forEach(r => {
+  const opt = document.createElement("option");
+  opt.value = r.id;
+  opt.textContent = `${r.name} (يتسع لـ ${r.capacity})`;
+  roomSelect.appendChild(opt);
+});
+
+function showBox(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.remove("hidden"); }
+function hideBox(id) { document.getElementById(id).classList.add("hidden"); }
+function hideAllBoxes() { ["warnBox","hintBox","errorBox","toastBox"].forEach(hideBox); }
+
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  ROOMS.forEach(r => {
+    const col = document.createElement("div");
+    col.className = "room-col";
+    const head = document.createElement("div");
+    head.className = "room-head";
+    head.innerHTML = `<div class="room-name">${r.name}</div><div class="room-cap">يتسع لـ ${r.capacity}</div>`;
+    col.appendChild(head);
+    const timeline = document.createElement("div");
+    timeline.className = "timeline";
+    const dayBookings = Object.entries(bookings).map(([id, b]) => ({ id, ...b })).filter(b => b.room === r.id && b.date === currentDate).sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+    SLOTS.forEach(t => {
+      const b = dayBookings.find(bk => toMinutes(bk.start) <= t && t < toMinutes(bk.end));
+      const isStart = b && toMinutes(b.start) === t;
+      const row = document.createElement("div");
+      row.className = "slot-row";
+      row.style.background = b ? "#2A2118" : "transparent";
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "slot-time";
+      timeSpan.textContent = fromMinutes(t);
+      row.appendChild(timeSpan);
+      if (isStart) {
+        const chip = document.createElement("div");
+        chip.className = "booked-chip";
+        chip.innerHTML = `<span class="booked-name">${b.name}</span><span class="booked-range">${b.start}–${b.end} · ${b.attendees} أشخاص</span>`;
+        const canCancel = currentUser && (currentUser.isAdmin || currentUser.name === b.name);
+        if (canCancel) {
+          const cancelBtn = document.createElement("button");
+          cancelBtn.className = "cancel-btn";
+          cancelBtn.textContent = "إلغاء";
+          cancelBtn.onclick = () => bookingsRef.child(b.id).remove();
+          chip.appendChild(cancelBtn);
+        }
+        row.appendChild(chip);
+      } else if (!b) {
+        const free = document.createElement("span");
+        free.className = "free-label";
+        free.textContent = "متاح";
+        row.appendChild(free);
+      }
+      timeline.appendChild(row);
+    });
+    col.appendChild(timeline);
+    board.appendChild(col);
+  });
+}
+
+function suggestFreeRoom(startMin, endMin, attendees) {
+  return ROOMS.find(r => {
+    if (r.capacity < attendees) return false;
+    const clash = Object.values(bookings).some(b => b.room === r.id && b.date === currentDate && overlaps(startMin, endMin, toMinutes(b.start), toMinutes(b.end)));
+    return !clash;
+  });
+}
+
+document.getElementById("bookingForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  hideAllBoxes();
+  const name = currentUser.name;
+  const room = roomSelect.value;
+  const start = document.getElementById("startInput").value;
+  const duration = Number(document.getElementById("durationSelect").value);
+  const attendees = Number(document.getElementById("attendeesInput").value);
+
+  const startMin = toMinutes(start);
+  const endMin = startMin + duration;
+  if (startMin < DAY_START*60 || endMin > DAY_END*60) return showBox("errorBox", `مواعيد الاجتماعات من ${DAY_START}:00 إلى ${DAY_END}:00 فقط`);
+
+  const roomInfo = ROOMS.find(r => r.id === room);
+  if (attendees > roomInfo.capacity) {
+    showBox("warnBox", `${roomInfo.name} تتسع لـ ${roomInfo.capacity} أشخاص كحد أقصى. قسّم الاجتماع أو استخدم قاعة أكبر.`);
+    const suggestion = suggestFreeRoom(startMin, endMin, attendees);
+    if (!suggestion) return;
+  }
+
+  const clash = Object.values(bookings).find(b => b.room === room && b.date === currentDate && overlaps(startMin, endMin, toMinutes(b.start), toMinutes(b.end)));
+  if (clash) return showBox("errorBox", `الغرفة محجوزة من ${clash.start} إلى ${clash.end} باسم ${clash.name}. جرّب وقت آخر أو غرفة أخرى`);
+
+  const suggestion = suggestFreeRoom(startMin, endMin, attendees);
+  if (suggestion && suggestion.id !== room) showBox("hintBox", `${suggestion.name} متاحة بهذا التوقيت — جرّبها إن كانت الغرفة الحالية مزدحمة.`);
+
+  bookingsRef.push({ name, room, date: currentDate, start, end: fromMinutes(endMin), attendees });
+  showBox("toastBox", "تم تأكيد الحجز ✓");
+  setTimeout(() => hideBox("toastBox"), 2500);
+});
+
+bookingsRef.on("value", (snapshot) => {
+  bookings = snapshot.val() || {};
+  renderBoard();
+  if (currentUser && currentUser.isAdmin) renderAdminList();
+});
+
+document.getElementById("adminPanelBtn").addEventListener("click", () => {
+  renderAdminList();
+  document.getElementById("adminModal").classList.remove("hidden");
+});
+document.getElementById("adminCloseBtn").addEventListener("click", () => {
+  document.getElementById("adminModal").classList.add("hidden");
+});
+document.getElementById("adminModal").addEventListener("click", (e) => {
+  if (e.target.id === "adminModal") { document.getElementById("adminModal").classList.add("hidden"); }
+});
+
+function renderAdminList() {
+  const list = document.getElementById("adminList");
+  const all = Object.entries(bookings).map(([id, b]) => ({ id, ...b })).sort((a,b) => (a.date + a.start).localeCompare(b.date + b.start));
+  if (all.length === 0) { list.innerHTML = `<div class="admin-empty">لا يوجد أي حجوزات حالياً</div>`; return; }
+  list.innerHTML = "";
+  all.forEach(b => {
+    const roomInfo = ROOMS.find(r => r.id === b.room);
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div class="admin-row-info">
+        <span class="admin-row-name">${b.name}</span>
+        <span class="admin-row-meta">${roomInfo ? roomInfo.name : b.room} · ${b.date} · ${b.start}–${b.end} · ${b.attendees} أشخاص</span>
+      </div>
+    `;
+    const delBtn = document.createElement("button");
+    delBtn.className = "cancel-btn";
+    delBtn.textContent = "حذف";
+    delBtn.onclick = () => bookingsRef.child(b.id).remove();
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+}
+</script>
+</body>
+</html>
