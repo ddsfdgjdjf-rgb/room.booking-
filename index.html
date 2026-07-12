@@ -39,6 +39,7 @@
   button{font-family:inherit;cursor:pointer;}
   input,select{font-family:inherit;}
 
+  /* ---------- Header ---------- */
   .board-header{
     background:var(--white);
     color:var(--navy-950);
@@ -93,6 +94,7 @@
   }
   .icon-btn:hover{background:var(--navy-100);border-color:var(--navy-500);}
 
+  /* ---------- Login screen ---------- */
   .login-wrap{
     min-height:calc(100vh - 92px);
     display:flex;
@@ -168,6 +170,7 @@
   .primary-btn:disabled{background:#9AA7BC;cursor:not-allowed;}
   .error-text{color:var(--red);font-size:.82rem;margin-top:8px;}
 
+  /* ---------- Booking screen ---------- */
   .main{max-width:1180px;margin:0 auto;padding:28px 22px 60px;}
   .toolbar{
     display:flex;justify-content:space-between;align-items:center;
@@ -237,6 +240,7 @@
   .slot-meta{color:inherit;font-size:.76rem;opacity:.85;flex:1;text-align:center;}
   .slot.free .slot-status{color:var(--green);font-weight:600;}
 
+  /* ---------- Modal ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(8,20,38,0.55);
     display:flex;align-items:center;justify-content:center;
@@ -264,6 +268,7 @@
   }
   .checkbox-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem;}
 
+  /* ---------- Admin ---------- */
   .admin-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.82rem;}
   .admin-table th{
     text-align:right;color:var(--text-muted);font-weight:600;
@@ -289,6 +294,7 @@
     font-size:.9rem;background:#FAFBFD;outline:none;resize:vertical;min-height:70px;font-family:inherit;
   }
 
+  /* ---------- Mobile polish ---------- */
   @media (max-width:480px){
     .main{padding:18px 14px 50px;}
     .toolbar{margin-bottom:18px;}
@@ -310,7 +316,7 @@
 
     .modal{padding:22px 18px;border-radius:14px;max-width:100%;}
     .modal h3{font-size:1.05rem;}
-    .field-input, .field input{font-size:16px;}
+    .field-input, .field input{font-size:16px;} /* prevents iOS auto-zoom on focus */
     .modal-actions{flex-direction:column;}
     .modal-actions button{width:100%;}
 
@@ -350,15 +356,15 @@
     <p>الرجاء إدخال بياناتك للمتابعة إلى صفحة حجز القاعات</p>
     <div class="field">
       <label>الاسم الكامل</label>
-      <input type="text" id="loginName" placeholder="مثال: عبدالله المطيري">
+      <input type="text" id="loginName">
     </div>
     <div class="field">
       <label>الرقم الوظيفي</label>
-      <input type="text" id="loginId" placeholder="مثال: 10452">
+      <input type="text" id="loginId">
     </div>
     <div class="field">
       <label>القسم / الإدارة</label>
-      <input type="text" id="loginDept" placeholder="مثال: تقنية المعلومات">
+      <input type="text" id="loginDept">
     </div>
     <button class="primary-btn" id="loginBtn">الدخول إلى الحجز</button>
     <div class="error-text" id="loginError" style="display:none;"></div>
@@ -408,7 +414,7 @@
     {id:'room3', name:'غرفة رقم 3', capacity:20},
   ];
   const WORK_HOURS = [8,9,10,11,12,13,14,15,16,17];
-  const MAX_BOOKINGS_PER_DAY = 2;
+  const MAX_BOOKINGS_PER_DAY = 2; // أقصى عدد حجوزات لكل موظف باليوم الواحد
 
   let currentUser = null;
   let selectedDate = todayStr();
@@ -437,6 +443,7 @@
     setTimeout(()=>el.remove(), 2600);
   }
 
+  // ---------- Clock ----------
   function tickClock(){
     const now = new Date();
     document.getElementById('clockBox').textContent =
@@ -445,6 +452,7 @@
   setInterval(tickClock,1000);
   tickClock();
 
+  // ---------- Storage helpers (Firebase Realtime Database) ----------
   const bookingsRef = firebaseReady ? db.ref('bookings') : null;
   let liveListenerAttached = false;
 
@@ -468,6 +476,7 @@
     }
   }
 
+  // Keep the UI live-synced across every device
   function attachLiveListener(){
     if(liveListenerAttached || !firebaseReady) return;
     liveListenerAttached = true;
@@ -491,6 +500,7 @@
     await bookingsRef.child(id).remove();
   }
 
+  // ---------- Login ----------
   document.getElementById('loginBtn').addEventListener('click', ()=>{
     const name = document.getElementById('loginName').value.trim();
     const id = document.getElementById('loginId').value.trim();
@@ -523,6 +533,7 @@
     document.getElementById('loginDept').value='';
   });
 
+  // ---------- Notifications & reminders ----------
   function requestNotificationPermission(){
     if(!('Notification' in window)) return;
     if(Notification.permission === 'default'){
@@ -564,6 +575,7 @@
     remindedIds.clear();
   }
 
+  // ---------- Booking screen init ----------
   async function initBookingScreen(){
     document.getElementById('dateInput').value = selectedDate;
     document.getElementById('dateLine').textContent = fmtDateHeader(selectedDate);
@@ -637,6 +649,7 @@
     });
   }
 
+  // ---------- Booking modal ----------
   function openBookingModal(room, hour){
     pendingSlot = {room, hour};
     const layer = document.getElementById('modalLayer');
@@ -801,6 +814,7 @@
       toast('لا يمكن أن يتجاوز الحجز نهاية الدوام (٦ مساءً)');
       return;
     }
+    // conflict check across full duration
     await loadBookings();
     const conflict = bookings.some(b=> b.roomId===room.id && b.date===selectedDate && hour < b.end && end > b.start);
     if(conflict){
@@ -844,6 +858,7 @@
       toast('تعذر حفظ الحجز، تحقق من الاتصال بالإنترنت');
     }
   }
+
 
 })();
 </script>
