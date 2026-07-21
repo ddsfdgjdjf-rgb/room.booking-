@@ -409,9 +409,10 @@
   }
 
   const ROOMS = [
-    {id:'room1', name:'غرفة رقم 1', capacity:6},
-    {id:'room2', name:'غرفة رقم 2', capacity:10},
-    {id:'room3', name:'غرفة رقم 3', capacity:20},
+    {id:'room1', name:'غرفة 182', capacity:20},
+    {id:'room2', name:'غرفة 161', capacity:20},
+    {id:'room3', name:'غرفة 165', capacity:20},
+    {id:'room4', name:'فصل دراسي 92', capacity:20},
   ];
   const WORK_HOURS = [8,9,10,11,12,13,14,15,16,17];
   const MAX_BOOKINGS_PER_DAY = 2; // أقصى عدد حجوزات لكل موظف باليوم الواحد
@@ -653,6 +654,11 @@
   function openBookingModal(room, hour){
     pendingSlot = {room, hour};
     const layer = document.getElementById('modalLayer');
+    const startDateObj = new Date(selectedDate+'T00:00:00');
+    const weekdayName = startDateObj.toLocaleDateString('ar-SA-u-ca-gregory',{weekday:'long'});
+    const defaultEnd = new Date(startDateObj);
+    defaultEnd.setMonth(defaultEnd.getMonth()+1);
+    const defaultEndStr = defaultEnd.getFullYear()+'-'+String(defaultEnd.getMonth()+1).padStart(2,'0')+'-'+String(defaultEnd.getDate()).padStart(2,'0');
     layer.innerHTML = `
       <div class="overlay" id="bkOverlay">
         <div class="modal">
@@ -674,6 +680,14 @@
             <label>الغرض من الاجتماع</label>
             <textarea class="field-input" id="bkPurpose" placeholder="مثال: اجتماع فريق المشروع"></textarea>
           </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="bkRecurring">
+            <label for="bkRecurring" style="margin:0;">حجز متكرر كل يوم ${weekdayName} (أسبوعيًا)</label>
+          </div>
+          <div class="field" id="bkRecurringEndWrap" style="display:none;margin-top:10px;">
+            <label>يتكرر حتى تاريخ</label>
+            <input type="date" class="field-input" id="bkRecurringEnd" value="${defaultEndStr}" min="${selectedDate}">
+          </div>
           <div id="bkWarn"></div>
           <div class="modal-actions">
             <button class="btn-secondary" id="bkCancel">إلغاء</button>
@@ -686,6 +700,9 @@
     document.getElementById('bkOverlay').addEventListener('click', (e)=>{ if(e.target.id==='bkOverlay') closeModal(); });
     document.getElementById('bkAttendees').addEventListener('input', checkCapacity);
     document.getElementById('bkDuration').addEventListener('change', checkCapacity);
+    document.getElementById('bkRecurring').addEventListener('change', (e)=>{
+      document.getElementById('bkRecurringEndWrap').style.display = e.target.checked ? 'block' : 'none';
+    });
     document.getElementById('bkConfirm').addEventListener('click', confirmBooking);
     checkCapacity();
   }
@@ -807,20 +824,12 @@
     const duration = parseInt(document.getElementById('bkDuration').value);
     const attendees = parseInt(document.getElementById('bkAttendees').value)||1;
     const purpose = document.getElementById('bkPurpose').value.trim();
+    const isRecurring = document.getElementById('bkRecurring').checked;
     const {room, hour} = pendingSlot;
     const end = hour + duration;
 
     if(end > 18){
       toast('لا يمكن أن يتجاوز الحجز نهاية الدوام (٦ مساءً)');
-      return;
-    }
-    // conflict check across full duration
-    await loadBookings();
-    const conflict = bookings.some(b=> b.roomId===room.id && b.date===selectedDate && hour < b.end && end > b.start);
-    if(conflict){
-      toast('عذرًا، تم حجز هذا الوقت للتو من قبل مستخدم آخر');
-      closeModal();
-      renderRooms();
       return;
     }
     if(attendees > room.capacity){
@@ -829,6 +838,63 @@
         toast('الرجاء تأكيد تجاوز السعة أو تقليل عدد الحضور');
         return;
       }
+    }
+
+    await loadBookings();
+
+    if(isRecurring){
+      const endDateStr = document.getElementById('bkRecurringEnd').value;
+      if(!endDateStr || endDateStr < selectedDate){
+        toast('الرجاء اختيار تاريخ نهاية صحيح للتكرار');
+        return;
+      }
+      const dates = [];
+      let cursor = new Date(selectedDate+'T00:00:00');
+      const endDateObj = new Date(endDateStr+'T00:00:00');
+      while(cursor <= endDateObj){
+        dates.push(cursor.getFullYear()+'-'+String(cursor.getMonth()+1).padStart(2,'0')+'-'+String(cursor.getDate()).padStart(2,'0'));
+        cursor.setDate(cursor.getDate()+7);
+      }
+      let created = 0, skipped = 0;
+      // work off a local copy so per-day counts/conflicts reflect bookings we add during this loop
+      const workingSet = [...bookings];
+      for(const d of dates){
+        const conflict = workingSet.some(b=> b.roomId===room.id && b.date===d && hour < b.end && end > b.start);
+        const countThatDay = workingSet.filter(b=> b.employeeId===currentUser.id && b.date===d).length;
+        if(conflict || countThatDay >= MAX_BOOKINGS_PER_DAY){
+          skipped++;
+          continue;
+        }
+        const booking = {
+          roomId: room.id, roomName: room.name, date: d, start: hour, end: end,
+          name: currentUser.name, employeeId: currentUser.id, dept: currentUser.dept,
+          attendees, purpose, overCapacity: attendees > room.capacity,
+          createdAt: new Date().toISOString()
+        };
+        try{
+          const newId = await addBookingToDB(booking);
+          workingSet.push({...booking, id:newId});
+          created++;
+        }catch(e){
+          skipped++;
+        }
+      }
+      closeModal();
+      if(created > 0){
+        notifyUser('تم إنشاء الحجز المتكرر', `${room.name} — ${created} موعد` + (skipped ? `، تخطينا ${skipped} بسبب تعارض أو تجاوز الحد` : ''));
+      }else{
+        toast('لم يتم إنشاء أي حجز — كل التواريخ متعارضة أو تجاوزت الحد المسموح');
+      }
+      return;
+    }
+
+    // conflict check across full duration (single booking)
+    const conflict = bookings.some(b=> b.roomId===room.id && b.date===selectedDate && hour < b.end && end > b.start);
+    if(conflict){
+      toast('عذرًا، تم حجز هذا الوقت للتو من قبل مستخدم آخر');
+      closeModal();
+      renderRooms();
+      return;
     }
     const myBookingsToday = bookings.filter(b=> b.employeeId===currentUser.id && b.date===selectedDate).length;
     if(myBookingsToday >= MAX_BOOKINGS_PER_DAY){
